@@ -24,14 +24,16 @@ classdef PE_DR
                 elseif m2 ~= 1
                     error('Labels must be a vector')
                 else
-                    [obj.sigma, obj.lambda] = obj.tune(X1, y1, X2);
+                    [obj.sigma, obj.lambda] = obj.tune(X, y);
+                    obj.Xtrain = X;
+                    obj.ytrain = y;
                 end
             end
         end
-        function [sigma, lambda] = tune(X, y)
+        function [sigma, lambda] = tune(~, X, y)
             [sigma, lambda] = tunePE_DR(X, y);
         end
-        function priors = estimateClassBalance(obj, X)
+        function [priors] = estimateClassBalance(obj, X)
             priors = computePE_DR(obj.Xtrain, obj.ytrain, X, obj.sigma, obj.lambda);
         end
     end
