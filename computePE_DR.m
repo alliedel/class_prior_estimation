@@ -21,13 +21,16 @@ function [ priors ] = computePE_DR( X1, y1, X2, sigma, lambda )
     GR_inv = inv(G+lambda*R);
     %% CVX Optimization
     c = length(classes);
+    Q1 = H'*GR_inv'*G*GR_inv*H;
+    Q2 = H'*GR_inv'*H;
+    Q = -0.5*Q1 + Q2;
     cvx_begin
         variable theta(c)
-        minimize( -0.5*theta'*H'*GR_inv*G*GR_inv*H*theta + theta'*H'*GR_inv'*H*theta-0.5 )
+        minimize( theta'*Q*theta - 0.5 )
         subject to
             ones(size(classes))' * theta == 1
     cvx_end
-    priors = theta;
+    priors = [classes, theta];
 end
 
 function G_hat = computeG(X_train, X_test, sigma)
@@ -67,7 +70,7 @@ function phi_bold = evaluateBasis(x, X_train, sigma)
         error('Number of features do not match')
     end
     x_diff = bsxfun(@plus, x, -X_train);
-    x_norm = sqrt(sum(x_diff.^2,2));
+    x_norm = sum(x_diff.^2,2);
     phi_bold = [1; exp(-x_norm/(2*sigma^2))];
 end
 
