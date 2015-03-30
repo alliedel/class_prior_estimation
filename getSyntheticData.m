@@ -1,9 +1,9 @@
-function [trainx, trainy, testx, testy] = getSynetheticData()
+function [trainx, trainy, testx, testy] = getSyntheticData()
 randseed(1);
 
 % Parameters
-ntrain = 100000;
-ntest = 1000;
+ntrain = 400;
+ntest = 400;
 py_train = 0.5;
 py_test = 0.05;
 
