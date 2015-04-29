@@ -16,13 +16,17 @@ X_test = [0.25 + sigma*randn(500,1);
 y_test = [ones(750,1);
            zeros(2250,1)];  % 0.25
 
-scatter(X_train, 0.5*ones(size(X_train)), 50*ones(size(X_train)), y_train+1, 'x', 'LineWidth',1.3); hold on
-scatter(X_test, 1.5*ones(size(X_test)), 50*ones(size(X_test)), y_test+1, 'x', 'LineWidth',1.3); hold on
-axis([-0.2 1.2 0.45 1.55])
-
 
 estimator = PE_DR(X_train, y_train);
 [priors, alphas] = estimator.estimateClassBalance(X_test);
+
+disp('Class priors are:')
+disp(priors)
+
+
+scatter(X_train, 0.5*ones(size(X_train)), 50*ones(size(X_train)), y_train+1, 'x', 'LineWidth',1.3); hold on
+scatter(X_test, 1.5*ones(size(X_test)), 50*ones(size(X_test)), y_test+1, 'x', 'LineWidth',1.3); hold on
+axis([-0.2 1.2 0.45 1.55])
 
 x = linspace(0,1,10000);
 density_ratios = NaN(size(x));
