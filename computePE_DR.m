@@ -1,4 +1,4 @@
-function [ priors ] = computePE_DR( X1, y1, X2, sigma, lambda )
+function [ priors, alphas ] = computePE_DR( X1, y1, X2, sigma, lambda )
 %PE_DR Class prior estimation using Pearson divergence with density ratio
 %estimation [duPlessis2013]
 %   Inputs:
@@ -31,6 +31,7 @@ function [ priors ] = computePE_DR( X1, y1, X2, sigma, lambda )
             ones(size(classes))' * theta == 1
     cvx_end
     priors = [classes, theta];
+    alphas = (G+lambda*R)\H*theta;
 end
 
 function G_hat = computeG(X_train, X_test, sigma)
@@ -60,17 +61,4 @@ function H_hat = computeH(X_train, y_train, sigma, classes)
     H_hat = bsxfun(@times, H_hat, 1./n_y');
 end
 
-function phi_bold = evaluateBasis(x, X_train, sigma)
-% Evaluate the sample x on all the basis functions
-    [n1, m1] = size(x);
-    [~, m2] = size(X_train);
-    if n1 ~= 1
-        error('x must be a row vector')
-    elseif m1 ~= m2
-        error('Number of features do not match')
-    end
-    x_diff = bsxfun(@plus, x, -X_train);
-    x_norm = sum(x_diff.^2,2);
-    phi_bold = [1; exp(-x_norm/(2*sigma^2))];
-end
 

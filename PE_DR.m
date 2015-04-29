@@ -33,8 +33,8 @@ classdef PE_DR
         function [sigma, lambda] = tune(~, X, y)
             [sigma, lambda] = tunePE_DR(X, y);
         end
-        function [priors] = estimateClassBalance(obj, X)
-            priors = computePE_DR(obj.Xtrain, obj.ytrain, X, obj.sigma, obj.lambda);
+        function [priors, alphas] = estimateClassBalance(obj, X)
+            [priors, alphas] = computePE_DR(obj.Xtrain, obj.ytrain, X, obj.sigma, obj.lambda);
         end
     end
     
