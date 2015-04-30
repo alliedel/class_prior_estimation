@@ -11,13 +11,22 @@ function [ sigma, lambda ] = tunePE_DR( X, y)
 %       sigma - Kernel bandwidth
 %       lambda - regularization constant
 
+[n1, ~] = size(X);
+[n2, m2] = size(y);
+if n1 ~= n2
+    error('Number of training samples and corresponding labels must be equal')
+elseif m2 ~= 1
+    error('Labels must be a vector')
+else
+
+
 %% Split samples into folds
 k = 4;  % number of folds
 c = cvpartition(length(y),'KFold',k);
 
 %% Cross-validate over a range of parameters
 sigmas = [0.1];
-lambdas = [0.01, 0.1, 1];
+lambdas = [1];
 MSEs = NaN(length(sigmas), length(lambdas));
 classes = sort(unique(y));
 for iSigma = 1:length(sigmas)
