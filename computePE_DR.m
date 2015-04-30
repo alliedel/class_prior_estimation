@@ -43,17 +43,21 @@ end
 
 function H_hat = computeH(X_train, y_train, sigma, classes)
 % Compute H_hat
-    H_hat = zeros(length(y_train)+1, length(classes));
-    n_y = zeros(length(classes), 1);  % number of samples from each class
-    for i = 1:length(y_train)
-        yi = y_train(i);
-        x = X_train(i,:);
-        phi_bold = evaluateBasis(x, X_train, sigma)';
-        class_index = find(classes-yi, 1);
-        H_hat(:, class_index) = H_hat(:, class_index) + phi_bold;
-        n_y(class_index) = n_y(class_index)+1;
+    [n1, m1] = size(X_train);
+    [n2, m2] = size(y_train);
+    if m2 ~= 1
+        error('Classes must be row vector')
+    elseif n1 ~= n2
+        error('Number of labels and samples must be equal')
     end
-    H_hat = bsxfun(@times, H_hat, 1./n_y');
+    H_hat = zeros(length(y_train)+1, length(classes));
+    phi_bold_matrix = evaluateBasis(X_train, X_train, sigma);
+    for i = 1:length(classes)
+        class = classes(i);
+        indices = y_train==class;
+        h_y = sum(phi_bold_matrix(indices,:), 1)/sum(indices);
+        H_hat(:, i) = h_y';
+    end
 end
 
 
