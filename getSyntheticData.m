@@ -1,9 +1,9 @@
-function [trainx, trainy, testx, testy] = getSyntheticData()
+function [X_train, y_train, X_test, y_test] = getSyntheticData()
 randseed(1);
 
 % Parameters
 ntrain = 400;
-ntest = 400;
+ntest = 200;
 py_train = 0.5;
 py_test = 0.05;
 
@@ -24,7 +24,8 @@ testy = testy(idxs);
 testx = testx(idxs,:);
 
 % Display data
-figure(1);
+if(0)
+    figure(1);
 clf; subplot(1,2,1)
 scatter(trainx(trainy==0,1),trainx(trainy==0,2),'b')
 hold on; scatter(trainx(trainy==1,1),trainx(trainy==1,2),'r');
@@ -39,6 +40,12 @@ legend({'y=0','y=1'}); axis square;
 title('Testing data')
 xlabel('x1'); ylabel('x2')
 hold off
+end
+y_train = trainy;
+X_train = trainx;
+y_test = testy;
+X_test = testx;
+
 
 
 end

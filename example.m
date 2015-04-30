@@ -3,19 +3,21 @@ clear, clc, close all
 m = 1;  % number of features
 sigma = 0.2;
 
-X_train = [0.25 + sigma*randn(1000,1);
-           rand(500,1);
-           0.75 + sigma*randn(1000,1);
-           rand(500,1)];  % 50/50 split
-y_train = [ones(1500,1);
-           zeros(1500,1)];  % 50/50 split
-X_test = [0.25 + sigma*randn(500,1);
-           rand(250,1);
-           0.75 + sigma*randn(1500,1);
-           rand(750,1)];  % 0.25
-y_test = [ones(750,1);
-           zeros(2250,1)];  % 0.25
+[X_train, y_train, X_test, y_test] = getSyntheticData();
 
+% X_train = [0.25 + sigma*randn(1000,1);
+%            rand(500,1);
+%            0.75 + sigma*randn(1000,1);
+%            rand(500,1)];  % 50/50 split
+% y_train = [ones(1500,1);
+%            zeros(1500,1)];  % 50/50 split
+% X_test = [0.25 + sigma*randn(500,1);
+%            rand(250,1);
+%            0.75 + sigma*randn(1500,1);
+%            rand(750,1)];  % 0.25
+% y_test = [ones(750,1);
+%            zeros(2250,1)];  % 0.25
+% 
 
 estimator = PE_DR(X_train, y_train);
 [priors, alphas] = estimator.estimateClassBalance(X_test);

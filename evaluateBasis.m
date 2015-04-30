@@ -6,6 +6,6 @@ function phi_bold_mat = evaluateBasis(X, X_train, sigma)
         error('Number of features do not match')
     end
     D = pdist2(X,X_train);
-    phi_bold_mat = [ones(1,size(D,2)); exp(-D/(2*sigma^2))];
+    phi_bold_mat = [ones(size(D,1),1) exp(-D/(2*sigma^2))];
     
 end
