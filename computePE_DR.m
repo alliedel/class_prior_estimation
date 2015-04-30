@@ -12,17 +12,18 @@ function [ priors, alphas ] = computePE_DR( X1, y1, X2, sigma, lambda )
 %       priors - c x 2 vector of estimated class priors, where c is the 
 %       number of classes, column 1 is the class label and column 2 is the
 %       estimated prior
-    
+    disp('Computing PE_DR...')
     classes = sort(unique(y1));
     R = eye(size(X1, 1)+1);
     R(1, 1) = 0;  % do not regularize constant basis function
     G = computeG(X1, X2, sigma);
     H = computeH(X1, y1, sigma, classes);
-    GR_inv = inv(G+lambda*R);
+    GR_inv_G = (G+lambda*R)\G;
+    GR_inv_H = (G+lambda*R)\H;
     %% CVX Optimization
     c = length(classes);
-    Q1 = H'*GR_inv'*G*GR_inv*H;
-    Q2 = H'*GR_inv'*H;
+    Q1 = H'*GR_inv_G*GR_inv_H;
+    Q2 = H'*GR_inv_H;
     Q = -0.5*Q1 + Q2;
     cvx_begin
         variable theta(c)
@@ -31,7 +32,7 @@ function [ priors, alphas ] = computePE_DR( X1, y1, X2, sigma, lambda )
             ones(size(classes))' * theta == 1
     cvx_end
     priors = [classes, theta];
-    alphas = (G+lambda*R)\H*theta;
+    alphas = GR_inv_H*theta;
 end
 
 function G_hat = computeG(X_train, X_test, sigma)
@@ -43,7 +44,7 @@ end
 
 function H_hat = computeH(X_train, y_train, sigma, classes)
 % Compute H_hat
-    [n1, m1] = size(X_train);
+    [n1, ~] = size(X_train);
     [n2, m2] = size(y_train);
     if m2 ~= 1
         error('Classes must be row vector')
