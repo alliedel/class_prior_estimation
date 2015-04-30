@@ -37,13 +37,8 @@ end
 function G_hat = computeG(X_train, X_test, sigma)
 % Compute G_hat
     n_prime = size(X_test, 1);
-    G_hat = zeros(size(X_train, 1)+1);
-    for i = 1:n_prime
-        x = X_test(i, :);
-        phi_bold = evaluateBasis(x, X_train, sigma);
-        G_hat = G_hat + phi_bold*phi_bold';
-    end
-    G_hat = G_hat./n_prime;   
+    phi_bold_matrix = evaluateBasis(X_test, X_train, sigma);
+    G_hat = phi_bold_matrix'*phi_bold_matrix/n_prime;
 end
 
 function H_hat = computeH(X_train, y_train, sigma, classes)
