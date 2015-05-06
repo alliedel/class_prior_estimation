@@ -18,8 +18,10 @@ function [ priors, alphas ] = computePE_DR( X1, y1, X2, sigma, lambda )
     R(1, 1) = 0;  % do not regularize constant basis function
     G = computeG(X1, X2, sigma);
     H = computeH(X1, y1, sigma, classes);
-    GR_inv_G = (G+lambda*R)\G;
-    GR_inv_H = (G+lambda*R)\H;
+    tic
+    opts.SYM = true;
+    GR_inv_G = linsolve(G+lambda*R, G, opts);  toc %(G+lambda*R)\G; toc
+    GR_inv_H = linsolve(G+lambda*R, H, opts);  toc %(G+lambda*R)\H; toc
     %% CVX Optimization
     c = length(classes);
     Q1 = H'*GR_inv_G*GR_inv_H;
