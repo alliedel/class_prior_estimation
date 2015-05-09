@@ -16,3 +16,4 @@ Thumbs.d
 # Sensitive files
 ######################
 data/trafficking/
+trafficking*
