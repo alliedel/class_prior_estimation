@@ -1,6 +1,6 @@
 # MATLAB temporary files
 ######################
-.m~
+*.m~
 
 
 # OS generated files #
