@@ -7,7 +7,7 @@ function [ MSE ] = computeMSE( priors1, priors2 )
 %   Outputs:
 %       MSE - the mean squared error
 
-MSE = sum((priors1-priors2).^2);
+MSE = sum((priors1(2)-priors2(2)).^2);
 
 end
 
