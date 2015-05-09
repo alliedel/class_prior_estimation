@@ -53,7 +53,7 @@ function results = MSE_wrapper(data, ~, test_prior, sigma, lambda)
                     datasample(indices_pos, floor((test_prior)*n), 'Replace', true)];
     X_test_bootstrap = X_test(indices_test, :);
     y_test_bootstrap = y_test(indices_test);
-    indices_train = datasample(1:length(y_train), 20, 'Replace', true);
+    indices_train = datasample(1:length(y_train), 100, 'Replace', true);
     X_train_bootstrap = X_train(indices_train, :);
     y_train_bootstrap = y_train(indices_train);
     [prior, alphas] = computePE_DR(X_train_bootstrap, y_train_bootstrap, X_test_bootstrap, sigma, lambda);

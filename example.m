@@ -19,7 +19,7 @@ ttotal = tic;
 
 
 %% LIBSVM real world datasets
-datasets = {'adult', 'australian_scale', 'diabetes', 'german_scale', 'ionosphere_scale'};
+datasets = {'trafficking'};  % {'adult', 'australian_scale', 'diabetes', 'german_scale', 'ionosphere_scale'};
 %dataset = 'adult'
 %dataset = 'australian_scale';
 %dataset = 'diabetes';
@@ -27,7 +27,12 @@ datasets = {'adult', 'australian_scale', 'diabetes', 'german_scale', 'ionosphere
 %dataset = 'ionosphere_scale';
 for iData = 1:length(datasets)
     dataset = datasets{iData};
-    [labels, features] = libsvmread(['data/', dataset]);
+    if strcmp(dataset, 'trafficking')
+        features = csvread('data/trafficking/features_subsample.csv');
+        labels = csvread('data/trafficking/labels_subsample.csv');
+    else
+        [labels, features] = libsvmread(['data/', dataset]);
+    end
 
     features(:,all(isnan(features))) = [];
     if any(any(isnan(features)))
@@ -38,12 +43,14 @@ for iData = 1:length(datasets)
 
     %% Tune parameters
     %[sigma, lambda] = tunePE_DR(X_train, y_train);
-    sigma = 5;
+    %sigma = 5;
     lambda = 0.001;
+    sigma = 10;
+    %lambda = 0.01;
 
     %% Remove evenly balanced data for training
     classes = sort(unique(labels));
-    train_size = 100;
+    train_size = 250;
     indices_neg = find(labels==classes(1));
     indices_pos = find(labels==classes(2));
     indices_train = [datasample(indices_neg, round(0.5*train_size));
@@ -89,14 +96,16 @@ for iData = 1:length(datasets)
 
     disp('Estimated class priors:')
     disp(estimated_test_pos_priors)
-
-    errorbar(test_pos_priors, MSEs, MSEs-MSEs_ci(:,1), MSEs_ci(:,2)-MSEs)
-    ylim([0 0.3])
+    
+    save(dataset, 'MSEs', 'MSEs_ci', 'test_pos_priors', 'estimated_test_pos_priors');
+    
+    figure
+    MSEs_ci(:,1) = min(MSEs_ci(:,1), 0);
+    MSEs_ci(:,2) = max(MSEs_ci(:,2), 0);
+    errorbar(test_pos_priors, MSEs, min(MSEs, MSEs-MSEs_ci(:,1)), MSEs_ci(:,2)-MSEs)
     xlabel('True class prior')
     ylabel('Mean squared error')
     title(dataset);
-    save(dataset, 'MSEs', 'MSEs_ci', 'test_pos_priors', 'estimated_test_pos_priors');
-
 end
 
 
