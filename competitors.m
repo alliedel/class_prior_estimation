@@ -1,11 +1,25 @@
-function Fnc = competitors(X, y,X_test)
+function Fnc = competitors(X_train, y_train, X_test)
 
   % train calibrated model
-  classes = sort(unique(y));
-  model = mnrfit(X,y);
-  pos = mnrval(model, X(y==classes(2), :));
-  neg = mnrval(model, X(y==classes(1), :));
-  test = mnrval(model, X_test, :));
+  classes = sort(unique(y_train));
+  if classes(1) == 0
+      y_train = y_train + 1;
+      classes = classes+1;
+  elseif classes(1) == -1
+      classes = (classes+1)/2+1;
+      y_train = (y_train+1)/2+1;
+  end
+  betas = glmfit(X_train,y_train-1,'binomial','link','logit');
+  %betas = mnrfit(X_train,y_train);
+  %pos = mnrval(betas, X_train(y_train==classes(2), :));
+  pos = glmval(betas, X_train(y_train==classes(2), :), 'logit');
+  %pos = pos(:,2);  % positive class is second column
+  %neg = mnrval(betas, X_train(y_train==classes(1), :));
+  neg = glmval(betas, X_train(y_train==classes(1), :), 'logit');
+  %neg = neg(:,2);  % positive class is secon column
+  %test = mnrval(betas, X_test);
+  test = glmval(betas, X_test, 'logit');
+  test = test(:,2);  % positive class is secon column
 
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   % Methods due to Forman 2005 %
@@ -51,10 +65,21 @@ function Fnc = competitors(X, y,X_test)
   prev_MS = median(prev_MS);
   
   %method - MM
+  if any(isnan(pos))
+      print 'Invalid estimate'
+  end
   [cdf_pos,x_pos] = ecdf(pos);
   [cdf_neg,x_neg] = ecdf(neg);
-  [cdf_test,x_test] = ecdf(text);
+  [cdf_test,x_test] = ecdf(test);
   x = linspace(0,1,1000);
+  if x_pos(1) == x_pos(2)  % first and second entries are the same
+    x_pos(1) = [];
+    cdf_pos(1) = [];  
+    x_neg(1) = [];
+    cdf_neg(1) = [];
+    x_test(1) = [];
+    cdf_test(1) = [];
+  end
   cdf_pos = interp1(x_pos,cdf_pos,x);
   cdf_neg = interp1(x_neg,cdf_neg,x);
   cdf_test = interp1(x_test,cdf_test,x);
@@ -87,7 +112,6 @@ function Fnc = competitors(X, y,X_test)
     end
   end
  
-  
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   % other methods %
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -97,6 +121,7 @@ function Fnc = competitors(X, y,X_test)
   
   %%%%%%%%%%%%%%%%%%%%%%%%%%%  
   
-  Fnc = [prev_CC,prev_ACC,prev_Max,prev_X,prev_T50,prev_MS,prev_MM,prev_PA,prev_SPA,prev_SCC,prev_EM,prev_XW];
+  Fnc = [prev_CC,prev_ACC,prev_Max,prev_X,prev_T50,prev_MS,prev_MM,prev_PA,prev_SPA,prev_SCC,prev_EM];
+  Fnc(isnan(Fnc)) = 0;
 end
   

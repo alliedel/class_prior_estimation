@@ -1,4 +1,4 @@
-function [ priors, alphas ] = computePE_DR( X1, y1, X2, sigma, lambda )
+function [ priors, alphas ] = computePE_DR( X_train, y_train, X_test, sigma, lambda )
 %PE_DR Class prior estimation using Pearson divergence with density ratio
 %estimation [duPlessis2013]
 %   Inputs:
@@ -13,11 +13,11 @@ function [ priors, alphas ] = computePE_DR( X1, y1, X2, sigma, lambda )
 %       number of classes, column 1 is the class label and column 2 is the
 %       estimated prior
     disp('Computing PE_DR...')
-    classes = sort(unique(y1));
-    R = eye(size(X1, 1)+1);
+    classes = sort(unique(y_train));
+    R = eye(size(X_train, 1)+1);
     R(1, 1) = 0;  % do not regularize constant basis function
-    G = computeG(X1, X2, sigma);
-    H = computeH(X1, y1, sigma, classes);
+    G = computeG(X_train, X_test, sigma);
+    H = computeH(X_train, y_train, sigma, classes);
     tic
     opts.SYM = true;
     GR_inv_G = linsolve(G+lambda*R, G, opts);  toc %(G+lambda*R)\G; toc
@@ -65,7 +65,7 @@ end
 
 function phi_bold_mat = evaluateBasis(X, X_train, sigma)
 % Evaluate the sample x on all the basis functions
-    [n1, m1] = size(X);
+    [~, m1] = size(X);
     [~, m2] = size(X_train);
     if m1 ~= m2
         error('Number of features do not match')

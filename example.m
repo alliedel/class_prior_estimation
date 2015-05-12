@@ -1,56 +1,52 @@
 clear, clc, close all
 ttotal = tic;
 
-% TODO: 10-fold cross validation
 
-%% Allie's Synthetic Data
-%[X_train, y_train, X_test, y_test] = getSyntheticData();
-
-
-%% Matt's Synthetic Data
-% dev = 0.2;
-% dim = 5;
-% features = [0.25 + dev*randn(200,dim);
-%            rand(100,dim);
-%            0.75 + dev*randn(200,dim);
-%            rand(100,dim)];
-% labels = [ones(300,1);
-%            zeros(300,1)];
-
-
-%% LIBSVM real world datasets
-datasets = {'trafficking'};  % {'adult', 'australian_scale', 'diabetes', 'german_scale', 'ionosphere_scale'};
-%dataset = 'adult'
-%dataset = 'australian_scale';
-%dataset = 'diabetes';
-%dataset = 'german_scale';
-%dataset = 'ionosphere_scale';
+%% Load data 
+dataset = 'diabetes'; % {'adult', 'australian_scale', 'diabetes', 'german_scale', 'ionosphere_scale', 'trafficking'};
+datasets = {'trafficking', 'synthetic', 'australian_scale', 'diabetes', 'german_scale', 'ionosphere_scale'};  %  
+%  'adult': NaN for logistic regression coefficients in competitors
+%  (perhaps b/c too few training samples)
 for iData = 1:length(datasets)
     dataset = datasets{iData};
     if strcmp(dataset, 'trafficking')
         features = csvread('data/trafficking/features_subsample.csv');
         labels = csvread('data/trafficking/labels_subsample.csv');
+        %disp('Running PCA')
+        %[coeff,score] = princomp(features);
+        %features = score(:,1:300);
+    elseif strcmp(dataset, 'synthetic')
+        dev = 0.2;
+        dim = 5;
+        features = [0.25 + dev*randn(200,dim);
+                   rand(100,dim);
+                   0.75 + dev*randn(200,dim);
+                   rand(100,dim)];
+        labels = [ones(300,1);
+                   zeros(300,1)];
     else
         [labels, features] = libsvmread(['data/', dataset]);
     end
 
+    % Clean up NaN and 0 entries if present (found in libsvm datasets)
     features(:,all(isnan(features))) = [];
+    features(:,all(features==0)) = [];
     if any(any(isnan(features)))
         error('Erroneous NaN entry in feature file')
     end
     features = full(features);
     features = whiten(features);
 
-    %% Tune parameters
+
+    %% Hyper-parameters
     %[sigma, lambda] = tunePE_DR(X_train, y_train);
-    %sigma = 5;
     lambda = 0.001;
     sigma = 10;
-    %lambda = 0.01;
 
-    %% Remove evenly balanced data for training
+
+    %% Sample training data
+    train_size = round(0.8*size(features, 1));
     classes = sort(unique(labels));
-    train_size = 250;
     indices_neg = find(labels==classes(1));
     indices_pos = find(labels==classes(2));
     indices_train = [datasample(indices_neg, round(0.5*train_size));
@@ -62,51 +58,56 @@ for iData = 1:length(datasets)
     X_test = features;
     y_test = labels;
 
-
-
-    %% Direct density ratio method
-    test_pos_priors = [0.1:0.1:0.9];
+    %% Direct density ratio method, and competitors
+    test_pos_priors = 0.1:0.1:0.9;
     k = 20;  % number of bootstraps
-    estimated_test_pos_priors = NaN(size(test_pos_priors));
-    MSEs = NaN(size(test_pos_priors))';
-    MSEs_ci = NaN(length(MSEs), 2);
-    classes = sort(unique(y_test));
+    results = struct('MSEs', {}, 'MSEs_ci', {}, 'priors', {}, 'priors_ci', {});
     for iPrior = 1:length(test_pos_priors)
         test_prior = test_pos_priors(iPrior);
-        [ci, bootstat] = bootstrapped_MSE(k, X_train, y_train, X_test, y_test, test_prior, sigma, lambda);
-        estimated_test_pos_priors(iPrior) = mean(bootstat(:,2));
-        MSEs(iPrior) = mean(bootstat(:,1));
-        MSEs_ci(iPrior, :) = ci(:,1)';
+        [ci, bootstat] = bootstrapped_estimator(k, X_train, y_train, X_test, y_test, test_prior, sigma, lambda);
+        results(iPrior).priors = bootstat(:, 1:size(bootstat, 2)/2);
+        results(iPrior).MSEs = bootstat(:, size(bootstat, 2)/2+1:end);
+        results(iPrior).priors_ci = ci(:, 1:size(bootstat, 2)/2);
+        results(iPrior).MSEs_ci = ci(:, size(bootstat, 2)/2+1:end);
     end
 
 
-    % scatter(X_train, 0.5*ones(size(X_train)), 50*ones(size(X_train)), y_train+1, 'x', 'LineWidth',1.3); hold on
-    % scatter(X_test, 1.5*ones(size(X_test)), 50*ones(size(X_test)), y_test+1, 'x', 'LineWidth',1.3); hold on
-    % axis([-0.2 1.2 0.45 1.55])
-    % 
-    % x = linspace(0,1,10000);
-    % density_ratios = NaN(size(x));
-    % for i = 1:length(x)
-    %     phi_bold = evaluateBasis(x(i), X_train, estimator.sigma);
-    %     density_ratios(i) = phi_bold*alphas;
-    % end
-    % plot(x, density_ratios, 'g')
+    %% Results
+    % Calculate MSEs
     disp('Total run time is:')
     toc(ttotal)
 
     disp('Estimated class priors:')
-    disp(estimated_test_pos_priors)
-    
-    save(dataset, 'MSEs', 'MSEs_ci', 'test_pos_priors', 'estimated_test_pos_priors');
-    
-    figure
-    MSEs_ci(:,1) = min(MSEs_ci(:,1), 0);
-    MSEs_ci(:,2) = max(MSEs_ci(:,2), 0);
-    errorbar(test_pos_priors, MSEs, min(MSEs, MSEs-MSEs_ci(:,1)), MSEs_ci(:,2)-MSEs)
-    xlabel('True class prior')
-    ylabel('Mean squared error')
-    title(dataset);
+    disp(cell2mat(arrayfun(@(x) mean(x.priors), results, 'UniformOutput', false)'));
+
+    output_path = ['results/', dataset];
+    methods = {'PE-DR', 'CC', 'ACC','Max','X','T50','MS','MM','PA','SPA','SCC','EM'};
+    save(output_path, 'results', 'test_pos_priors', 'methods');
 end
+% figure, hold on
+% col = [51,34,136
+% 102,153,204
+% 136,204,238
+% 68,170,153
+% 17,119,51
+% 153,153,51
+% 221,204,119
+% 102,17,0
+% 204,102,119
+% 170,68,102
+% 136,34,85
+% 170,68,153]/255;
+% for iMethod = 1:size(results(1).MSEs_ci, 2)
+%     lower_ci = max(arrayfun(@(x) x.MSEs_ci(1, iMethod), results), 0);
+%     upper_ci = max(arrayfun(@(x) x.MSEs_ci(2, iMethod), results), 0);
+%     MSEs = arrayfun(@(x) mean(x.MSEs(:, iMethod)), results);
+%     plot(test_pos_priors, MSEs, 'color', col(iMethod,:), 'LineWidth', 1.3); hold on
+%     %errorbar(test_pos_priors, MSEs, min(MSEs, MSEs-lower_ci), upper_ci-MSEs, 'color',col(iMethod,:)); hold on
+% end
+% legend(methods);
+% xlabel('True class prior')
+% ylabel('Mean squared error')
+% title(dataset);
 
 
 
