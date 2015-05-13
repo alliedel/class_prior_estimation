@@ -1,17 +1,23 @@
 clear, clc, close all
-datasets = {'australian_scale', 'diabetes', 'german_scale', 'ionosphere_scale'};  % 'adult', 
-dataset_names = {'Australian', 'Diabetes', 'German', 'Ionosphere'};
-paper_MSEs = cell(size(datasets));
-% paper_MSEs{1} = [0.10019011406844108, 0.04565217391304344
-% 0.2, 0.035217391304347756
-% 0.29980988593155894, 0.028260869565217395
-% 0.4002851711026616, 0.025217391304347803
-% 0.4994296577946768, 0.02434782608695646
-% 0.5999049429657795, 0.028260869565217395
-% 0.6997148288973383, 0.03565217391304348
-% 0.8001901140684411, 0.04608695652173911
-% 0.8993346007604561, 0.057826086956521694];  % adult
-paper_MSEs{1} = [0.10069876228495264, 0.021062992125984226
+datasets = {'synthetic', 'australian_scale', 'diabetes', 'german_scale', 'ionosphere_scale'};  % 'adult', 
+dataset_display_names = containers.Map;
+dataset_display_names('synthetic') = 'Synthetic';
+dataset_display_names('adult') = 'Adult';
+dataset_display_names('australian_scale') = 'Australian';
+dataset_display_names('diabetes') = 'Diabetes';
+dataset_display_names('german_scale') = 'German';
+dataset_display_names('ionosphere_scale') = 'Ionosphere';
+paper_MSEs = containers.Map;
+paper_MSEs('adult') =  [0.10019011406844108, 0.04565217391304344
+0.2, 0.035217391304347756
+0.29980988593155894, 0.028260869565217395
+0.4002851711026616, 0.025217391304347803
+0.4994296577946768, 0.02434782608695646
+0.5999049429657795, 0.028260869565217395
+0.6997148288973383, 0.03565217391304348
+0.8001901140684411, 0.04608695652173911
+0.8993346007604561, 0.057826086956521694];  % adult
+paper_MSEs('australian_scale') = [0.10069876228495264, 0.021062992125984226
 0.19996053287094248, 0.02135826771653543
 0.2998770695980176, 0.021062992125984226
 0.39979878234201827, 0.021948818897637834
@@ -20,7 +26,7 @@ paper_MSEs{1} = [0.10069876228495264, 0.021062992125984226
 0.6995483925232437, 0.021062992125984226
 0.799468811263013, 0.02165354330708663
 0.8993866419943195, 0.02165354330708663];  % australian_scale
-paper_MSEs{2} = [0.1001393218653619, 0.07713791895234401
+paper_MSEs('diabetes') = [0.1001393218653619, 0.07713791895234401
 0.2000339302753615, 0.06839360227346702
 0.2999295081218, 0.060386749742753265
 0.4004872110560071, 0.0560679104074544
@@ -29,7 +35,7 @@ paper_MSEs{2} = [0.1001393218653619, 0.07713791895234401
 0.700210783180001, 0.060070990445511674
 0.8001286580645341, 0.06902581332254965
 0.9000445940761895, 0.07650570790326139];  % diabetes
-paper_MSEs{3} = [0.10019353776045237, 0.12695390781563126
+paper_MSEs('german_scale') = [0.10019353776045237, 0.12695390781563126
 0.1996733192412222, 0.09088176352705407
 0.3004625689735636, 0.06803607214428858
 0.39982430614653963, 0.057815631262525036
@@ -38,7 +44,7 @@ paper_MSEs{3} = [0.10019353776045237, 0.12695390781563126
 0.6997350866115796, 0.07735470941883765
 0.7995964531803335, 0.10771543086172344
 0.8994235045433335, 0.14559118236472945];%german scale
-paper_MSEs{4} = [0.1006168780999185, 0.03303085299455538
+paper_MSEs('ionosphere_scale') = [0.1006168780999185, 0.03303085299455538
 0.20011483143412037, 0.03357531760435578
 0.30027329275350023, 0.0373865698729583
 0.39910467839623814, 0.0373865698729583
@@ -77,12 +83,18 @@ for iData = 1:length(datasets)
             counter = counter - 1;
         end
     end
-    plot(test_pos_priors, paper_MSEs{iData}(:, 2), 'r', 'LineWidth', 1.3)
-    legend([fliplr(to_plot), {'du Plessis 2014'}]);
+    if isKey(paper_MSEs, dataset)
+        paper_MSE = paper_MSEs(dataset);
+        plot(test_pos_priors, paper_MSE(:, 2), 'r', 'LineWidth', 1.3)
+        legend([fliplr(to_plot), {'du Plessis 2014'}]);
+    else
+        legend(fliplr(to_plot));
+    end
     xlabel('True class prior')
     ylabel('Mean squared error')
-    title(dataset_names{iData});
-    saveas(f, [dataset, '.eps'], 'epsc')
+    
+    title(dataset_display_names(dataset));
+    saveas(f, ['temp/', dataset, '.eps'], 'epsc')
 end
 
 %% Trafficking data
@@ -99,4 +111,4 @@ legend('PE-DR')
 xlabel('True test set prior');
 ylabel('Mean squared error');
 title('Trafficking Dataset')
-saveas(f, 'trafficking.eps', 'epsc')
+saveas(f, 'temp/trafficking.eps', 'epsc')
