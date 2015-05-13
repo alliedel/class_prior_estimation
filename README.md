@@ -19,7 +19,7 @@ bootstrap_traintest -- simultaneously bootstraps training and testing data and c
 replot -- plots the results from example.m
 
 ## Example ##
-An example of all the methods over multiple datasets and a range of test class priors can be found in `example.m`.
+An example of all the methods over multiple datasets and a range of test class priors can be found in `example.m`. Plots of some results of this script are available in *results/* as .eps figures and .mat data files
 
 ## Known Issues ##
 Logistic regression is used for the classifier scores in classification_methods. If the data is linearly separable (i.e. if the number of samples is not much larger than the number of dimensions), MATLAB's logreg will either return NaN weights, error out, or create CDF issues if the probabilities are all extreme. Attempts at fixing this, with mild success, have included PCA to reduce dimensionality or using L1 regularization.
