@@ -19,7 +19,7 @@ function Fnc = competitors(X_train, y_train, X_test)
   %neg = neg(:,2);  % positive class is secon column
   %test = mnrval(betas, X_test);
   test = glmval(betas, X_test, 'logit');
-  test = test(:,2);  % positive class is secon column
+  %test = test(:,2);  % positive class is secon column
 
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   % Methods due to Forman 2005 %

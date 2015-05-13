@@ -1,12 +1,14 @@
+%% Class prior estimation examples
+%   Multiple datasets and all methods w/ bootstrapping
+
 clear, clc, close all
 ttotal = tic;
 
-
 %% Load data 
-dataset = 'diabetes'; % {'adult', 'australian_scale', 'diabetes', 'german_scale', 'ionosphere_scale', 'trafficking'};
-datasets = {'trafficking', 'synthetic', 'australian_scale', 'diabetes', 'german_scale', 'ionosphere_scale'};  %  
+datasets = {'synthetic'}; %, 'australian_scale', 'diabetes', 'german_scale', 'ionosphere_scale', 'trafficking'};  %  
 %  'adult': NaN for logistic regression coefficients in competitors
 %  (perhaps b/c too few training samples)
+
 for iData = 1:length(datasets)
     dataset = datasets{iData};
     if strcmp(dataset, 'trafficking')
@@ -43,7 +45,6 @@ for iData = 1:length(datasets)
     lambda = 0.001;
     sigma = 10;
 
-
     %% Sample training data
     train_size = round(0.8*size(features, 1));
     classes = sort(unique(labels));
@@ -55,22 +56,32 @@ for iData = 1:length(datasets)
     y_train = labels(indices_train);
     features(indices_train, :) = [];
     labels(indices_train) = [];
-    X_test = features;
-    y_test = labels;
 
-    %% Direct density ratio method, and competitors
+    %% Run class prior estimation over range of priors
     test_pos_priors = 0.1:0.1:0.9;
     k = 20;  % number of bootstraps
     results = struct('MSEs', {}, 'MSEs_ci', {}, 'priors', {}, 'priors_ci', {});
     for iPrior = 1:length(test_pos_priors)
+        % Sample testing data
         test_prior = test_pos_priors(iPrior);
-        [ci, bootstat] = bootstrapped_estimator(k, X_train, y_train, X_test, y_test, test_prior, sigma, lambda);
+        indices_neg = find(labels==classes(1));
+        indices_pos = find(labels==classes(2));
+        maxn = floor(min(length(indices_neg)/(1-test_prior), length(indices_pos)/test_prior));
+        indices_test = [datasample(indices_neg, floor(maxn*(1-test_prior)));
+                         datasample(indices_pos, floor(maxn*test_prior))];
+        X_test = features(indices_test, :);
+        y_test = labels(indices_test);
+        
+        % Run method
+        [ci, bootstat] = bootstrap_traintest(k, {@all_methods, sigma, ...
+            lambda}, X_train, y_train, X_test, y_test, 'alpha', 0.05, ...
+            'ci_type', 'norm');
+        
         results(iPrior).priors = bootstat(:, 1:size(bootstat, 2)/2);
         results(iPrior).MSEs = bootstat(:, size(bootstat, 2)/2+1:end);
         results(iPrior).priors_ci = ci(:, 1:size(bootstat, 2)/2);
         results(iPrior).MSEs_ci = ci(:, size(bootstat, 2)/2+1:end);
     end
-
 
     %% Results
     % Calculate MSEs
@@ -84,6 +95,7 @@ for iData = 1:length(datasets)
     methods = {'PE-DR', 'CC', 'ACC','Max','X','T50','MS','MM','PA','SPA','SCC','EM'};
     save(output_path, 'results', 'test_pos_priors', 'methods');
 end
+%% Plot results
 % figure, hold on
 % col = [51,34,136
 % 102,153,204
@@ -108,6 +120,10 @@ end
 % xlabel('True class prior')
 % ylabel('Mean squared error')
 % title(dataset);
+
+
+
+
 
 
 
