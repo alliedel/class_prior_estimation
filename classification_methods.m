@@ -1,4 +1,4 @@
-function Fnc = competitors(X_train, y_train, X_test)
+function Fnc = classification_methods(X_train, y_train, X_test)
 
   % train calibrated model
   classes = sort(unique(y_train));
