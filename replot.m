@@ -1,5 +1,5 @@
 clear, clc, close all
-datasets = {'synthetic', 'australian_scale', 'diabetes', 'german_scale', 'ionosphere_scale'};  % 'adult', 
+datasets = {'synthetic'}; %, 'australian_scale', 'diabetes', 'german_scale', 'ionosphere_scale'};  % 'adult', 
 dataset_display_names = containers.Map;
 dataset_display_names('synthetic') = 'Synthetic';
 dataset_display_names('adult') = 'Adult';
@@ -53,12 +53,12 @@ paper_MSEs('ionosphere_scale') = [0.1006168780999185, 0.03303085299455538
 0.7002793524597862, 0.03466424682395641
 0.8004499331917382, 0.03303085299455538
 0.899953946232226, 0.030852994555353896];  % ionosphere
-to_plot = {'PE-DR','CC','ACC','Max','X','T50','PA','SPA','EM'};  % 'SCC','MS','MM',
+to_plot = {'PE-DR','CC','ACC','Max','X','T50','PA','SPA','EM', 'SCC','MS','MM','Oracle'};  % ,
 
 for iData = 1:length(datasets)
     f = figure; hold on
     dataset = datasets{iData};
-    data = load(['results/', dataset, '.mat']);
+    data = load(['temp/', dataset, '.mat']);
     methods = data.methods;
     results = data.results;
     test_pos_priors = data.test_pos_priors;

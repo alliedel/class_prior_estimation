@@ -1,5 +1,5 @@
-function [ ci, bootstats] = bootstrap_traintest(nboot, bootfun, X_train, y_train, X_test, y_test, varargin)
-%BOOTSTRAPPED_MSE Bootstraps training and testing data for PE_DR MSE statistics
+function [ ci, bootstats] = bootstrap_traintest(nboot, bootfun, X, y, train_size, train_prior, test_prior, varargin)
+%BOOTSTRAPPED_TRAINTEST Simultaneously bootstraps training and testing data
 %   Inputs:
 %       nboot - number of bootstraps
 %       bootfun - function handle. Accepts inputs (X_train, y_train,
@@ -7,10 +7,12 @@ function [ ci, bootstats] = bootstrap_traintest(nboot, bootfun, X_train, y_train
 %           if bootfun is cell array, additional inputs follow
 %           ex. {bootfun, a, b} calls bootfun(X_train, y_train, X_test,
 %           y_test, a, b)
-%       X_train - training samples [n x m] (samples n, features m)
-%       y_train - training labels [n x 1]
-%       X_test - testing samples
-%       y_test - testing labels
+%       X - Samples [n x m] (samples n, features m)
+%       y - Labels [n x 1]
+%       train_size - int, number of training samples to use
+%       train_prior - [0, 1]
+%       test_prior - [0, 1] (uses as many test samples as possible, up to a
+%       limit)
 %       varargin - 'alpha' and 'ci_type'
 %               alpha: confidence inteval parameter, default 0.05 (95%)
 %               ci_type: confidence interval type, default 'norm'
@@ -25,38 +27,29 @@ function [ ci, bootstats] = bootstrap_traintest(nboot, bootfun, X_train, y_train
 %       Matt Barnes
 %       Mathworks
 
-    if nargin<6
+    if nargin<7
         error('Too few inputs');
     end;
     if nboot<=0 || nboot~=round(nboot)
         error('Invalid nboot input')
     end;
-    if size(y_train,2)~=1
-        error('Invalid training labels input')
+    if size(y,2)~=1
+        error('Invalid labels input')
     end;
-    if size(X_train,1)~=size(y_train,1)
-        error('Number of training samples and labels do not match')
-    end;
-    if size(y_test,2)~=1
-        error('Invalid testing labels input')
-    end;
-    if size(X_test,1)~=size(y_test,1)
-        error('Number of testing samples and labels do not match')
-    end;
-    if size(X_train,2)~=size(X_test,2)
-        error('Number of features do not match')
+    if size(X,1)~=size(y,1)
+        error('Number of samples and labels do not match')
     end;
 
     if ~iscell(bootfun) % default syntax
         data = {};
-    else % syntax with optional type, alpha, nbootstd, and stderrfun name/value pairs
+    else % syntax with optional type and alpha name/value pairs
         data = bootfun(2:end);
         bootfun = bootfun{1};
     end
 
     p = inputParser;
     defaultAlpha = 0.05;
-    defaultType = 'norm';
+    defaultType = 'per';
     expectedTypes = {'norm','per','cper'};
 
     addOptional(p,'alpha',defaultAlpha,@isnumeric);
@@ -65,41 +58,45 @@ function [ ci, bootstats] = bootstrap_traintest(nboot, bootfun, X_train, y_train
     parse(p,varargin{:});
     alpha = p.Results.alpha;
     ci_type = p.Results.ci_type;
-
-    stat = bootfun(X_train, y_train, X_test, y_test, data{:});
-    stat = stat(:);  % turn into column vector
-    if ~isvector(stat)
-        error('Output from bootfun must be vector')
+    if ~strcmp(ci_type, 'per')
+        error('Can only use percentile confidence intervals if resplitting training and testing data every bootstrap')
     end
-
-    classes = sort(unique(y_train));
-    train_indices_neg = find(y_train==classes(1));
-    train_indices_pos = find(y_train==classes(2));
-    test_indices_neg = find(y_test==classes(1));
-    test_indices_pos = find(y_test==classes(2));
-
-    bootstats = NaN(nboot, length(stat));
-
+    
+    classes = sort(unique(y));
+    indices_neg = find(y==classes(1));
+    indices_pos = find(y==classes(2));
+    
+    %% Bootstrapping
     for i = 1:nboot
-        % Force training and testing data to have same prior as original
-        indices_train = [datasample(train_indices_neg, length(train_indices_neg), 'Replace', true);
-                        datasample(train_indices_pos, length(train_indices_pos), 'Replace', true)];
-        indices_test = [datasample(test_indices_neg, length(test_indices_neg), 'Replace', true);
-                        datasample(test_indices_pos, length(test_indices_pos), 'Replace', true)];
-        X_train_bootstrap = X_train(indices_train, :);
-        y_train_bootstrap = y_train(indices_train);
-        X_test_bootstrap = X_test(indices_test, :);
-        y_test_bootstrap = y_test(indices_test, :);
-
+        % Split train and test data
+        indices_train = [datasample(indices_neg, round(train_size*(1-train_prior)), 'Replace', true);
+                        datasample(indices_pos, round(train_size*train_prior), 'Replace', true)];
+        X_train_bootstrap = X(indices_train, :);
+        y_train_bootstrap = y(indices_train);
+        X_test_bootstrap = X;
+        y_test_bootstrap = y;
+        X_test_bootstrap(indices_train, :) = [];
+        y_test_bootstrap(indices_train) = [];
+        test_indices_neg = find(y_test_bootstrap==classes(1));
+        test_indices_pos = find(y_test_bootstrap==classes(2));
+        test_size = floor(min(length(test_indices_neg)/(1-test_prior), length(test_indices_pos)/test_prior));
+        test_size = min(test_size, 1000);
+        indices_test = [datasample(test_indices_neg, round(test_size*(1-test_prior)), 'Replace', true);
+                        datasample(test_indices_pos, round(test_size*test_prior), 'Replace', true)];
+        X_test_bootstrap = X_test_bootstrap(indices_test, :);
+        y_test_bootstrap = y_test_bootstrap(indices_test);
         bstat = bootfun(X_train_bootstrap, y_train_bootstrap, X_test_bootstrap, y_test_bootstrap, data{:});
         bstat = bstat(:);  % column vector
+        if ~exist('bootstats','var')
+        	bootstats = NaN(nboot, length(bstat));
+        end
         bootstats(i, :) = bstat';
     end
 
     switch ci_type
-        case 'norm'; ci = ci_norm(stat, bstat, alpha);
-        case 'per'; ci = ci_per(stat, bstat, alpha);
-        case 'cper'; ci = ci_cper(stat, bstat, alpha);
+        case 'norm'; ci = ci_norm(stat, bootstats, alpha);
+        case 'per'; ci = ci_per(bootstats, alpha);
+        case 'cper'; ci = ci_cper(stat, bootstats, alpha);
     end
     
     % Reshape
@@ -124,7 +121,7 @@ function ci = ci_norm(stat,bstat,alpha)
 end   % bootnorm() 
  
 %-------------------------------------------------------------------------
-function ci = ci_per(~,bstat,alpha)
+function ci = ci_per(bstat,alpha)
 % percentile bootstrap CI
 % modified from Mathworks
 
