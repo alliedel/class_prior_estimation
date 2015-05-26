@@ -9,17 +9,25 @@ function Fnc = classification_methods(X_train, y_train, X_test)
       classes = (classes+1)/2+1;
       y_train = (y_train+1)/2+1;
   end
-  betas = glmfit(X_train,y_train-1,'binomial','link','logit');
-  %betas = mnrfit(X_train,y_train);
-  %pos = mnrval(betas, X_train(y_train==classes(2), :));
-  pos = glmval(betas, X_train(y_train==classes(2), :), 'logit');
-  %pos = pos(:,2);  % positive class is second column
-  %neg = mnrval(betas, X_train(y_train==classes(1), :));
-  neg = glmval(betas, X_train(y_train==classes(1), :), 'logit');
-  %neg = neg(:,2);  % positive class is secon column
-  %test = mnrval(betas, X_test);
-  test = glmval(betas, X_test, 'logit');
-  %test = test(:,2);  % positive class is secon column
+  %% Cross validate regularization parameter
+%     [betas, FitInfo] = lassoglm(X_train,y_train-1,'binomial','link','logit','CV',10);
+%     lassoPlot(betas,FitInfo,'plottype','CV');
+%     lassoPlot(betas,FitInfo,'PlotType','Lambda','XScale','log');
+%     indx = FitInfo.Index1SE;
+%     beta0 = betas(:, indx);
+%     cnst = FitInfo.Intercept(indx);
+%     beta = [cnst;beta0];
+  
+  %% Use old regularization parameter
+  lambda = 0.0383;
+  [beta0, FitInfo] = lassoglm(X_train,y_train-1,'binomial','link','logit','Lambda',lambda);
+  cnst = FitInfo.Intercept(1);
+  beta = [cnst;beta0];
+
+  %% Evaluate logistic regression probability
+  pos = glmval(beta, X_train(y_train==classes(2), :), 'logit');
+  neg = glmval(beta, X_train(y_train==classes(1), :), 'logit');
+  test = glmval(beta, X_test, 'logit');
 
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   % Methods due to Forman 2005 %
