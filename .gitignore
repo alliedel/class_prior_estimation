@@ -16,9 +16,9 @@ Thumbs.d
 # Sensitive files
 ######################
 data/trafficking/
-trafficking*
+trafficking
 data/insurance/
-insurance*
+insurance
 
 # Temporary files
 #####################
