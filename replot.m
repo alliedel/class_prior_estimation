@@ -1,5 +1,5 @@
 clear, clc, close all
-datasets = {'synthetic'}; %, 'australian_scale', 'diabetes', 'german_scale', 'ionosphere_scale'};  % 'adult', 
+datasets = {'insuranceCC15'};  % 'synthetic', 'australian_scale', 'diabetes', 'german_scale'}; %, 'australian_scale', 'diabetes', 'german_scale', 'ionosphere_scale'};  % 'adult', 
 dataset_display_names = containers.Map;
 dataset_display_names('synthetic') = 'Synthetic';
 dataset_display_names('adult') = 'Adult';
@@ -7,6 +7,17 @@ dataset_display_names('australian_scale') = 'Australian';
 dataset_display_names('diabetes') = 'Diabetes';
 dataset_display_names('german_scale') = 'German';
 dataset_display_names('ionosphere_scale') = 'Ionosphere';
+dataset_display_names('insuranceCC15') = 'Insurance CC15';
+dataset_display_names('insuranceCC19') = 'Insurance CC19';
+dataset_display_names('insuranceCC32') = 'Insurance CC32';
+dataset_display_names('insuranceCC54') = 'Insurance CC54';
+dataset_display_names('insuranceCC78') = 'Insurance CC78';
+dataset_display_names('insuranceCC79') = 'Insurance CC79';
+dataset_display_names('insuranceCC80') = 'Insurance CC80';
+dataset_display_names('insuranceCC83') = 'Insurance CC83';
+dataset_display_names('insuranceCC104') = 'Insurance CC104';
+dataset_display_names('insuranceCC131') = 'Insurance CC131';
+dataset_display_names('insuranceCC164') = 'Insurance CC164';
 
 to_plot = {'PE-DR','CC','ACC','Max','X','T50','PA','SPA','EM', 'SCC','MS','MM','Oracle'};  % ,
 
@@ -15,7 +26,7 @@ for iData = 1:length(datasets)
     fig_rae = figure; hold on
     fig_kld = figure; hold on
     dataset = datasets{iData};
-    data = load(['temp/', dataset, '.mat']);
+    data = load(['results/', dataset, '.mat']);
     methods = data.methods;
     results = data.results;
     test_pos_priors = data.test_pos_priors;

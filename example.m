@@ -5,13 +5,14 @@ clear, clc, close all
 ttotal = tic;
 
 %% Load data 
-datasets = {'synthetic'}; %, 'australian_scale', 'diabetes', 'german_scale', 'ionosphere_scale', 'trafficking'};  %  
+datasets = {'insuranceCC19', 'insuranceCC32', 'insuranceCC54', 'insuranceCC78', 'insuranceCC79', 'insuranceCC80', 'insuranceCC83', 'insuranceCC104', 'insuranceCC131', 'insuranceCC164'};  % {'synthetic', 'australian_scale', 'diabetes', 'german_scale', 'ionosphere_scale'}; %, 'australian_scale', 'diabetes', 'german_scale', 'ionosphere_scale', 'trafficking'};  %  
 %  'adult': NaN for logistic regression coefficients in competitors
 %  (perhaps b/c too few training samples)
 
 for iData = 1:length(datasets)
     %% Load and clean dataset
     dataset = datasets{iData};
+    disp(['Loading dataset ', dataset])
     if strcmp(dataset, 'trafficking')
         features = csvread('data/trafficking/features_subsample.csv');
         labels = csvread('data/trafficking/labels_subsample.csv');
@@ -22,7 +23,7 @@ for iData = 1:length(datasets)
         dev = 0.2;
         dim = 1;
         ind = @(x) all(0 <= x, 2) & all(x <= 1, 2);
-        %%%%%% IMPORTANT: PDFs and sample sample draws are defined independently
+        %%%%%% IMPORTANT: PDFs and sample draws are defined independently
         % If either is updated, change the other. Otherwise Oracle will not
         % perform correctly.
         pos_pdf = @(x) 1/3*ind(x) + 2/3*mvnpdf(x,0.25*ones(1,dim),0.02*eye(dim));
@@ -34,10 +35,15 @@ for iData = 1:length(datasets)
         labels = [ones(3000,1);
                   zeros(3000,1)];
         %%%%%%
+    elseif ~isempty(strfind(dataset, 'insurance'))
+        subset = dataset(10:end);
+        features = csvread(['data/insurance/', subset, '_features.csv']);
+        labels = csvread(['data/insurance/', subset, '_labels.csv']);
     else
         [labels, features] = libsvmread(['data/', dataset]);
     end
-
+    disp('Finished.')
+    
     % Clean up NaN and 0 entries if present (found in libsvm datasets)
     features(:,all(isnan(features))) = [];
     features(:,all(features==0)) = [];
