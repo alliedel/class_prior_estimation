@@ -17,3 +17,9 @@ Thumbs.d
 ######################
 data/trafficking/
 trafficking*
+data/insurance/
+insurance*
+
+# Temporary files
+#####################
+temp/
