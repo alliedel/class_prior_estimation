@@ -1,4 +1,4 @@
-function [ priors, alphas ] = computePE_DR( X1, y1, X2, sigma, lambda )
+function [ priors, alphas ] = computePE_DR( X_train, y_train, X_test, sigma, lambda )
 %PE_DR Class prior estimation using Pearson divergence with density ratio
 %estimation [duPlessis2013]
 %   Inputs:
@@ -12,46 +12,29 @@ function [ priors, alphas ] = computePE_DR( X1, y1, X2, sigma, lambda )
 %       priors - c x 2 vector of estimated class priors, where c is the 
 %       number of classes, column 1 is the class label and column 2 is the
 %       estimated prior
-    
-    classes = sort(unique(y1));
-    c = length(classes);
-    R = eye(size(X1, 1)+1);
+    disp('Computing PE_DR...')
+    classes = sort(unique(y_train));
+    R = eye(size(X_train, 1)+1);
     R(1, 1) = 0;  % do not regularize constant basis function
-    tic;
-    G = computeG(X1, X2, sigma);
-    fprintf('=== G stuff: '); toc
-    tic;
-    H = computeH(X1, y1, sigma, classes);
-    fprintf('=== H stuff: '); toc
-    tic;
-    GR_inv = inv(G+lambda*R);
-    fprintf('=== Inverse 1: '); toc
-    tic;
-    G(G < 0.0005) = 0;
-    G = sparse(G);
-    R = sparse(R);
-    fprintf('=== Made G sparse: '); toc
-    tic;
-%     [Q,R] = qr(X,0)
-    [Q,R] = qr(G + lambda*R,0);
-    GR_inv = R\Q';
-    fprintf('=== Inverse 2: '); toc
-    tic;
-    Q1 = H'*GR_inv'*G*GR_inv*H;
-    Q2 = H'*GR_inv'*H;
-    Q = -0.5*Q1 + Q2;
-    fprintf('=== The rest: '); toc
-    %% CVX Optimization
+    G = computeG(X_train, X_test, sigma);
+    H = computeH(X_train, y_train, sigma, classes);
     tic
+    opts.SYM = true;
+    GR_inv_G = linsolve(G+lambda*R, G, opts);  toc %(G+lambda*R)\G; toc
+    GR_inv_H = linsolve(G+lambda*R, H, opts);  toc %(G+lambda*R)\H; toc
+    %% CVX Optimization
+    c = length(classes);
+    Q1 = H'*GR_inv_G*GR_inv_H;
+    Q2 = H'*GR_inv_H;
+    Q = -0.5*Q1 + Q2;
     cvx_begin
         variable theta(c)
         minimize( theta'*Q*theta - 0.5 )
         subject to
             ones(size(classes))' * theta == 1
     cvx_end
-    fprintf('=== CVX: '); toc
     priors = [classes, theta];
-    alphas = (G+lambda*R)\H*theta;
+    alphas = GR_inv_H*theta;
 end
 
 function G_hat = computeG(X_train, X_test, sigma)
@@ -63,17 +46,33 @@ end
 
 function H_hat = computeH(X_train, y_train, sigma, classes)
 % Compute H_hat
-    H_hat = zeros(length(y_train)+1, length(classes));
-    n_y = zeros(length(classes), 1);  % number of samples from each class
-    for i = 1:length(y_train)
-        yi = y_train(i);
-        x = X_train(i,:);
-        phi_bold = evaluateBasis(x, X_train, sigma)';
-        class_index = find(classes-yi, 1);
-        H_hat(:, class_index) = H_hat(:, class_index) + phi_bold;
-        n_y(class_index) = n_y(class_index)+1;
+    [n1, ~] = size(X_train);
+    [n2, m2] = size(y_train);
+    if m2 ~= 1
+        error('Classes must be row vector')
+    elseif n1 ~= n2
+        error('Number of labels and samples must be equal')
     end
-    H_hat = bsxfun(@times, H_hat, 1./n_y');
+    H_hat = zeros(length(y_train)+1, length(classes));
+    phi_bold_matrix = evaluateBasis(X_train, X_train, sigma);
+    for i = 1:length(classes)
+        class = classes(i);
+        indices = y_train==class;
+        h_y = sum(phi_bold_matrix(indices,:), 1)/sum(indices);
+        H_hat(:, i) = h_y';
+    end
+end
+
+function phi_bold_mat = evaluateBasis(X, X_train, sigma)
+% Evaluate the sample x on all the basis functions
+    [~, m1] = size(X);
+    [~, m2] = size(X_train);
+    if m1 ~= m2
+        error('Number of features do not match')
+    end
+    D = pdist2(X,X_train);
+    phi_bold_mat = [ones(size(D,1),1) exp(-D/(2*sigma^2))];
+    
 end
 
 
