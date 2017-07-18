@@ -14,22 +14,42 @@ function [ priors, alphas ] = computePE_DR( X1, y1, X2, sigma, lambda )
 %       estimated prior
     
     classes = sort(unique(y1));
+    c = length(classes);
     R = eye(size(X1, 1)+1);
     R(1, 1) = 0;  % do not regularize constant basis function
+    tic;
     G = computeG(X1, X2, sigma);
+    fprintf('=== G stuff: '); toc
+    tic;
     H = computeH(X1, y1, sigma, classes);
+    fprintf('=== H stuff: '); toc
+    tic;
     GR_inv = inv(G+lambda*R);
-    %% CVX Optimization
-    c = length(classes);
+    fprintf('=== Inverse 1: '); toc
+    tic;
+    G(G < 0.0005) = 0;
+    G = sparse(G);
+    R = sparse(R);
+    fprintf('=== Made G sparse: '); toc
+    tic;
+%     [Q,R] = qr(X,0)
+    [Q,R] = qr(G + lambda*R,0);
+    GR_inv = R\Q';
+    fprintf('=== Inverse 2: '); toc
+    tic;
     Q1 = H'*GR_inv'*G*GR_inv*H;
     Q2 = H'*GR_inv'*H;
     Q = -0.5*Q1 + Q2;
+    fprintf('=== The rest: '); toc
+    %% CVX Optimization
+    tic
     cvx_begin
         variable theta(c)
         minimize( theta'*Q*theta - 0.5 )
         subject to
             ones(size(classes))' * theta == 1
     cvx_end
+    fprintf('=== CVX: '); toc
     priors = [classes, theta];
     alphas = (G+lambda*R)\H*theta;
 end
